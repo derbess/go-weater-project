@@ -9,12 +9,11 @@ import (
 	"time"
 )
 
-
 func FeatchOpenWeather(ctx context.Context, client *http.Client, city string) (*models.OpenWeather, error) {
 	if client == nil {
 		client = &http.Client{Timeout: 5 * time.Second}
 	}
-	apiKeyOpenWeather := getEnv("API_KEY_OPEN_WEATHER", "")
+	apiKeyOpenWeather := GetEnv("API_KEY_OPEN_WEATHER", "")
 	url := fmt.Sprintf("https://api.openweathermap.org/data/2.5/weather?q=%s&appid=%s&units=metric", city, apiKeyOpenWeather)
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
@@ -43,7 +42,7 @@ func FetchWeatherApi(ctx context.Context, client *http.Client, city string) (*mo
 	if client == nil {
 		client = &http.Client{Timeout: 5 * time.Second}
 	}
-	apiKeyWeatherApi := getEnv("API_KEY_WEATHER_API", "")
+	apiKeyWeatherApi := GetEnv("API_KEY_WEATHER_API", "")
 	url := fmt.Sprintf("https://api.weatherapi.com/v1/current.json?q=%s&key=%s", city, apiKeyWeatherApi)
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
