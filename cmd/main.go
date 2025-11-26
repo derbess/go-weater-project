@@ -1,6 +1,7 @@
 package main
 
 import (
+	"go-first-project/client"
 	"go-first-project/database"
 	"go-first-project/handlers"
 	helper "go-first-project/internal"
@@ -15,7 +16,7 @@ import (
 func main() {
 
 	if err := godotenv.Load(); err != nil {
-		log.Println("No .env file found, using system environment variables")
+		log.Printf("No .env file found, using system environment variables")
 	}
 
 	dbConfig := database.Config{
@@ -26,22 +27,28 @@ func main() {
 		DBName:   helper.GetEnv("DB_NAME", ""),
 	}
 
-	if err := database.Connect(dbConfig); err != nil {
+	pool, err := database.Connect(dbConfig)
+	if err != nil {
 		log.Fatal("Failed to connect to database:", err)
 	}
-	defer database.Close()
+	defer database.Close(pool)
 
-	if err := database.InitSchema(); err != nil {
+	if err := database.InitSchema(pool); err != nil {
 		log.Fatal("Failed to initialize database schema:", err)
 	}
 
-	wRepo := repository.NewWeatherRepository(database.DB)
-	wServices := services.NewWeatcherService(wRepo)
+	weatherClient := client.NewClient(
+		helper.GetEnv("API_KEY_OPEN_WEATHER", ""),
+		helper.GetEnv("API_KEY_WEATHER_API", ""),
+	)
+
+	wRepo := repository.NewWeatherRepository(pool)
+	wServices := services.NewWeatcherService(wRepo, weatherClient)
 	wHandlers := handlers.WeatherHandler{WeatcherService: *wServices}
 
 	http.HandleFunc("/weather", wHandlers.GetWeatherHandler)
 	if err := http.ListenAndServe(":8080", nil); err != nil {
-		panic(err)
+		log.Fatal("Failed to start server:", err)
 	}
 
 }

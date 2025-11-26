@@ -2,18 +2,18 @@ package repository
 
 import (
 	"context"
-	"database/sql"
 	"fmt"
 	"go-first-project/models"
+
+	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 type WeatherRepository struct {
-	db *sql.DB
+	pool *pgxpool.Pool
 }
 
-
-func NewWeatherRepository(db *sql.DB) *WeatherRepository {
-	return &WeatherRepository{db: db}
+func NewWeatherRepository(pool *pgxpool.Pool) *WeatherRepository {
+	return &WeatherRepository{pool: pool}
 }
 
 func (r *WeatherRepository) CreateWeather(ctx context.Context, weather *models.WeatherData) error {
@@ -23,20 +23,20 @@ func (r *WeatherRepository) CreateWeather(ctx context.Context, weather *models.W
 		VALUES ($1, $2, $3, $4, $5, $6)
 	`
 
-	_, err := r.db.ExecContext(
+	_, err := r.pool.Exec(
 		ctx,
 		query,
 		weather.City,
-		weather.Temp, 
-		weather.Humidity, 
+		weather.Temp,
+		weather.Humidity,
 		weather.Wind,
-		weather.FeelsLike, 
+		weather.FeelsLike,
 		weather.Provider,
 	)
 
 	if err != nil {
 		return fmt.Errorf("failed to insert weather: %w", err)
 	}
-	
+
 	return nil
 }

@@ -1,14 +1,12 @@
 package database
 
 import (
-	"database/sql"
+	"context"
 	"fmt"
 	"log"
 
-	_ "github.com/lib/pq"
+	"github.com/jackc/pgx/v5/pgxpool"
 )
-
-var DB *sql.DB
 
 type Config struct {
 	Host     string
@@ -18,28 +16,27 @@ type Config struct {
 	DBName   string
 }
 
-func Connect(config Config) error {
+func Connect(config Config) (*pgxpool.Pool, error) {
 	connStr := fmt.Sprintf(
 		"host=%s port=%s user=%s password=%s dbname=%s sslmode=disable",
 		config.Host, config.Port, config.User, config.Password, config.DBName,
 	)
 
-	var err error
-	DB, err = sql.Open("postgres", connStr)
+	pool, err := pgxpool.New(context.Background(), connStr)
 	if err != nil {
-		return fmt.Errorf("error opening database: %w", err)
+		return nil, fmt.Errorf("error opening database: %w", err)
 	}
 
-	//test
-	if err = DB.Ping(); err != nil {
-		return fmt.Errorf("error connecting to database: %w", err)
+	// Test connection
+	if err = pool.Ping(context.Background()); err != nil {
+		return nil, fmt.Errorf("error connecting to database: %w", err)
 	}
 
-	log.Println("Successfully connected to database")
-	return nil
+	log.Printf("Successfully connected to database")
+	return pool, nil
 }
 
-func InitSchema() error {
+func InitSchema(pool *pgxpool.Pool) error {
 	query := `
 	CREATE TABLE IF NOT EXISTS weather_data (
 		id SERIAL PRIMARY KEY,
@@ -56,18 +53,17 @@ func InitSchema() error {
 	CREATE INDEX IF NOT EXISTS idx_weather_city ON weather_data(city);
 	`
 
-	_, err := DB.Exec(query)
+	_, err := pool.Exec(context.Background(), query)
 	if err != nil {
 		return fmt.Errorf("error creating schema: %w", err)
 	}
 
-	log.Println("Database schema initialized successfully")
+	log.Printf("Database schema initialized successfully")
 	return nil
 }
 
-func Close() error {
-	if DB != nil {
-		return DB.Close()
+func Close(pool *pgxpool.Pool) {
+	if pool != nil {
+		pool.Close()
 	}
-	return nil
 }
