@@ -4,6 +4,8 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"go-first-project/internal"
+	"go-first-project/models"
 	"go-first-project/services"
 	"log"
 	"net/http"
@@ -11,6 +13,14 @@ import (
 
 type WeatherHandler struct {
 	WeatcherService services.WeatcherService
+	Validator       *internal.Validator
+}
+
+func NewWeatherHandler(service services.WeatcherService, validator *internal.Validator) *WeatherHandler {
+	return &WeatherHandler{
+		WeatcherService: service,
+		Validator:       validator,
+	}
 }
 
 func (h WeatherHandler) GetWeatherHandler(w http.ResponseWriter, r *http.Request) {
@@ -25,8 +35,12 @@ func (h WeatherHandler) GetWeatherHandler(w http.ResponseWriter, r *http.Request
 	}
 
 	city := r.URL.Query().Get("city")
-	if city == "" {
-		http.Error(w, "City parameter is required", http.StatusBadRequest)
+
+
+	queryParams := models.WeatherQueryParams{City: city}
+	if err := h.Validator.ValidateStruct(queryParams); err != nil {
+		log.Printf("Validation error: %v", err)
+		internal.RespondWithValidationError(w, err)
 		return
 	}
 
