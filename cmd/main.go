@@ -49,9 +49,11 @@ func main() {
 		helper.GetEnv("API_KEY_WEATHER_API", ""),
 	)
 
+	validator := helper.NewValidator()
+
 	wRepo := repository.NewWeatherRepository(pool)
 	wServices := services.NewWeatcherService(wRepo, weatherClient)
-	wHandlers := handlers.WeatherHandler{WeatcherService: *wServices}
+	wHandlers := handlers.NewWeatherHandler(*wServices, validator)
 
 	http.HandleFunc("/weather", wHandlers.GetWeatherHandler)
 
